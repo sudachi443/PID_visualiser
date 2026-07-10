@@ -20,55 +20,61 @@
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            padding: 20px;
+            padding: 12px;
             font-family: 'Segoe UI', Meiryo, system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             min-height: 100vh;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         header {
-            max-width: 1600px;
-            margin: 0 auto 20px;
+            max-width: 100%;
+            margin: 0 auto 16px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            gap: 8px;
         }
 
         h1 {
             margin: 0;
-            font-size: 2rem;
+            font-size: 1.5rem;
+            line-height: 1.2;
         }
 
         .subtitle {
             color: #475569;
-            line-height: 1.5;
-            font-size: 0.95rem;
+            line-height: 1.4;
+            font-size: 0.85rem;
+            margin: 0;
         }
 
         .container {
             display: grid;
-            grid-template-columns: 3fr 1fr;
-            gap: 24px;
-            max-width: 1600px;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            max-width: 100%;
             margin: 0 auto;
         }
 
         .canvas-container,
         .panel {
             background: var(--panel-bg);
-            border-radius: 16px;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+            padding: 12px;
         }
 
         .canvas-container {
-            min-height: 480px;
+            min-height: 280px;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            width: 100%;
         }
 
         canvas {
@@ -76,7 +82,7 @@
             height: 100%;
             display: block;
             cursor: crosshair;
-            border-radius: 12px;
+            border-radius: 8px;
             background: #f1f5f9;
         }
 
@@ -84,49 +90,53 @@
         .wind-indicator,
         .mode-description {
             position: absolute;
-            right: 18px;
-            padding: 8px 12px;
+            right: 12px;
+            padding: 6px 10px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(255, 255, 255, 0.95);
             color: #475569;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             pointer-events: none;
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+            max-width: calc(100% - 24px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .drag-hint { top: 18px; }
-        .wind-indicator { top: 60px; display: none; }
-        .mode-description { bottom: 18px; left: 18px; right: auto; max-width: 260px; pointer-events: auto; }
+        .drag-hint { top: 12px; }
+        .wind-indicator { top: 50px; display: none; }
+        .mode-description { bottom: 12px; left: 12px; right: auto; max-width: calc(100% - 24px); pointer-events: auto; white-space: normal; }
 
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 18px;
-            max-height: calc(100vh - 90px);
-            overflow-y: auto;
-            padding-right: 4px;
+            gap: 14px;
+            max-height: none;
+            overflow-y: visible;
+            padding-right: 0;
         }
 
         .panel h2 {
             margin-top: 0;
-            margin-bottom: 14px;
-            font-size: 1.15rem;
+            margin-bottom: 10px;
+            font-size: 1rem;
             border-bottom: 2px solid var(--border-color);
-            padding-bottom: 8px;
+            padding-bottom: 6px;
         }
 
         .btn-group-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .btn-group,
         .slider-group,
         .status-grid {
             display: grid;
-            gap: 12px;
+            gap: 10px;
         }
 
         .btn-group {
@@ -135,19 +145,22 @@
 
         button {
             border: 1px solid transparent;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #e2e8f0;
             color: var(--text-color);
-            padding: 14px 12px;
-            font-size: 0.97rem;
+            padding: 12px 10px;
+            font-size: 0.85rem;
             font-weight: 700;
             cursor: pointer;
             transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
-            text-align: left;
-            min-height: 70px;
+            text-align: center;
+            min-height: 58px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            align-items: center;
+            line-height: 1.2;
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:hover:not(:disabled) {
@@ -155,8 +168,13 @@
             background: #dbeafe;
         }
 
+        button:active:not(:disabled) {
+            transform: translateY(0);
+            background: #bfdbfe;
+        }
+
         button:disabled {
-            opacity: 0.55;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
@@ -176,26 +194,30 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
+            gap: 8px;
+            margin-bottom: 6px;
             font-weight: 700;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
         }
 
         .slider-header span.val {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 0.85rem;
         }
 
         .param-toggle {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             cursor: pointer;
             user-select: none;
+            margin: 0;
         }
 
         .param-toggle input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             cursor: pointer;
             margin: 0;
         }
@@ -209,6 +231,7 @@
             cursor: pointer;
             height: 22px;
             accent-color: var(--primary);
+            -webkit-appearance: slider-horizontal;
         }
 
         .status-grid {
@@ -217,37 +240,194 @@
 
         .status-item {
             background: #f1f5f9;
-            padding: 14px;
-            border-radius: 12px;
-            min-height: 72px;
+            padding: 10px;
+            border-radius: 10px;
+            min-height: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
         .status-label {
-            font-size: 0.78rem;
+            font-size: 0.7rem;
             color: #64748b;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             font-weight: 700;
         }
 
         .status-value {
-            font-size: 1.18rem;
+            font-size: 1rem;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
             font-weight: 700;
         }
 
-        .status-value.off { color: #94a3b8; font-size: 1rem; }
+        .status-value.off { color: #94a3b8; font-size: 0.9rem; }
         .c-p { color: var(--primary); }
         .c-i { color: var(--warning); }
         .c-d { color: var(--success); }
         .c-err { color: var(--target); }
 
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
-            .canvas-container { min-height: 340px; }
-            button { min-height: 58px; }
+        /* スマートフォン向け最適化 */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            .subtitle {
+                font-size: 0.8rem;
+            }
+
+            header {
+                margin-bottom: 12px;
+                gap: 6px;
+            }
+
+            .canvas-container {
+                min-height: 240px;
+                padding: 10px;
+            }
+
+            .panel {
+                padding: 10px;
+            }
+
+            .drag-hint,
+            .wind-indicator,
+            .mode-description {
+                font-size: 0.7rem;
+                padding: 5px 8px;
+            }
+
+            .btn-group-grid,
+            .btn-group {
+                gap: 6px;
+            }
+
+            button {
+                padding: 10px 8px;
+                font-size: 0.8rem;
+                min-height: 52px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-item {
+                min-height: 50px;
+                padding: 8px;
+            }
+
+            .status-label {
+                font-size: 0.65rem;
+            }
+
+            .status-value {
+                font-size: 0.95rem;
+            }
+
+            .slider-header {
+                font-size: 0.85rem;
+            }
+
+            .slider-header span.val {
+                font-size: 0.8rem;
+            }
+
+            .panel h2 {
+                font-size: 0.95rem;
+                margin-bottom: 8px;
+                padding-bottom: 4px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            body {
+                padding: 8px;
+            }
+
+            h1 {
+                font-size: 1.1rem;
+            }
+
+            header {
+                margin-bottom: 10px;
+            }
+
+            .container {
+                gap: 12px;
+            }
+
+            .canvas-container {
+                min-height: 200px;
+                padding: 8px;
+            }
+
+            .panel {
+                padding: 8px;
+            }
+
+            button {
+                padding: 10px 6px;
+                font-size: 0.75rem;
+                min-height: 48px;
+            }
+
+            .btn-group-grid,
+            .btn-group {
+                gap: 5px;
+            }
+
+            .sidebar {
+                gap: 10px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-item {
+                min-height: 48px;
+                padding: 6px;
+            }
+        }
+
+        /* 平板向け最適化 */
+        @media (min-width: 900px) {
+            header {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: flex-start;
+            }
+
+            .container {
+                grid-template-columns: 3fr 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            body {
+                padding: 20px;
+            }
+
+            button {
+                min-height: 70px;
+                font-size: 0.97rem;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .canvas-container {
+                min-height: 480px;
+            }
         }
     </style>
 </head>
@@ -272,14 +452,14 @@
             <div class="panel">
                 <h2>1. 制御モード</h2>
                 <div class="btn-group-grid">
-                    <button id="btnON_OFF" onclick="setMode('ON_OFF')"><span>ON/OFF</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">強さは固定・正負切り替え</span></button>
-                    <button id="btnP" onclick="setMode('P')"><span>P のみ</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">誤差に比例する連続出力</span></button>
-                    <button id="btnPD" onclick="setMode('PD')"><span>PD</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">速度も使ってブレーキ制御</span></button>
-                    <button id="btnPID" onclick="setMode('PID')"><span>PID</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">定常偏差と外乱に強い</span></button>
+                    <button id="btnON_OFF" onclick="setMode('ON_OFF')"><span>ON/OFF</span><span style="font-size:0.75rem;font-weight:400;margin-top:4px;">強さは固定・正負切り替え</span></button>
+                    <button id="btnP" onclick="setMode('P')"><span>P のみ</span><span style="font-size:0.75rem;font-weight:400;margin-top:4px;">誤差に比例する連続出力</span></button>
+                    <button id="btnPD" onclick="setMode('PD')"><span>PD</span><span style="font-size:0.75rem;font-weight:400;margin-top:4px;">速度も使ってブレーキ制御</span></button>
+                    <button id="btnPID" onclick="setMode('PID')"><span>PID</span><span style="font-size:0.75rem;font-weight:400;margin-top:4px;">定常偏差と外乱に強い</span></button>
                 </div>
                 <div class="btn-group">
-                    <button id="btnWind" class="btn-wind" onclick="toggleWind()"><span>💨 風</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">常時の外乱を追加</span></button>
-                    <button class="btn-action" onclick="applyDisturbance()"><span>🌪 突風</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">一時的にずらす</span></button>
+                    <button id="btnWind" class="btn-wind" onclick="toggleWind()"><span>💨 風</span><span style="font-size:0.75rem;font-weight:400;margin-top:4px;">常時の外乱を追加</span></button>
+                    <button class="btn-action" onclick="applyDisturbance()"><span>🌪 突風</span><span style="font-size:0.75rem;font-weight:400;margin-top:4px;">一時的にずらす</span></button>
                 </div>
                 <div class="btn-group">
                     <button class="btn-danger" onclick="resetSim()">↺ リセット</button>
@@ -292,7 +472,7 @@
                     <div class="slider-header">
                         <label class="param-toggle c-p" id="labelKp">
                             <input type="checkbox" id="checkP" onchange="toggleParam('P')" checked>
-                            Kp (比例)
+                            <span>Kp (比例)</span>
                         </label>
                         <span class="val c-p" id="valKp">0.0</span>
                     </div>
@@ -302,7 +482,7 @@
                     <div class="slider-header">
                         <label class="param-toggle c-d" id="labelKd">
                             <input type="checkbox" id="checkD" onchange="toggleParam('D')" checked>
-                            Kd (微分)
+                            <span>Kd (微分)</span>
                         </label>
                         <span class="val c-d" id="valKd">0.0</span>
                     </div>
@@ -312,7 +492,7 @@
                     <div class="slider-header">
                         <label class="param-toggle c-i" id="labelKi">
                             <input type="checkbox" id="checkI" onchange="toggleParam('I')" checked>
-                            Ki (積分)
+                            <span>Ki (積分)</span>
                         </label>
                         <span class="val c-i" id="valKi">0.0</span>
                     </div>
