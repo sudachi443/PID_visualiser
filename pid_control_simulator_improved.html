@@ -439,7 +439,7 @@
             <h1>PID制御シミュレーター（改善版）</h1>
             <p class="subtitle">ON/OFF と P/PD/PID の違いをより見やすくしました。ドラッグで目標を移動し、風や突風で制御の特徴を比べてください。</p>
         </div>
-        <div class="subtitle">Mass: 1.0 / Damping: 0.05</div>
+        <div class="subtitle">Mass: 0.8 / Damping: 0.04</div>
     </header>
 
     <div class="container">
@@ -478,7 +478,7 @@
                         </label>
                         <span class="val c-p" id="valKp">0.0</span>
                     </div>
-                    <input type="range" id="slideKp" min="0" max="20" step="0.1" value="0">
+                    <input type="range" id="slideKp" min="0" max="20" step="0.1" value="8">
                 </div>
                 <div class="slider-group">
                     <div class="slider-header">
@@ -488,7 +488,7 @@
                         </label>
                         <span class="val c-d" id="valKd">0.0</span>
                     </div>
-                    <input type="range" id="slideKd" min="0" max="12" step="0.1" value="0">
+                    <input type="range" id="slideKd" min="0" max="12" step="0.1" value="5">
                 </div>
                 <div class="slider-group">
                     <div class="slider-header">
@@ -498,7 +498,7 @@
                         </label>
                         <span class="val c-i" id="valKi">0.0</span>
                     </div>
-                    <input type="range" id="slideKi" min="0" max="6" step="0.1" value="0">
+                    <input type="range" id="slideKi" min="0" max="6" step="0.1" value="1.5">
                 </div>
             </div>
 
@@ -542,7 +542,7 @@
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
 
-        const PHYSICS = { mass: 1.0, damping: 0.06 };
+        const PHYSICS = { mass: 0.8, damping: 0.04 };
         const ON_OFF_FORCE = 140;
         const WIND_FORCE = -70;
         const MAX_INTEGRAL = 6;
@@ -562,9 +562,9 @@
         };
 
         const params = {
-            Kp: 0,
-            Ki: 0,
-            Kd: 0,
+            Kp: 8,
+            Ki: 1.5,
+            Kd: 5,
             enableP: true,
             enableI: true,
             enableD: true
@@ -897,20 +897,20 @@
                 document.getElementById('btn' + mode).classList.add('active-mode');
                 controlMode = mode;
                 if (mode === 'P') {
-                    params.Kp = 6.0;
+                    params.Kp = 8.0;
                     params.enableP = true;
                     params.enableI = false;
                     params.enableD = false;
                 } else if (mode === 'PD') {
-                    params.Kp = 4.2;
-                    params.Kd = 4.8;
+                    params.Kp = 6.0;
+                    params.Kd = 6.5;
                     params.enableP = true;
                     params.enableI = false;
                     params.enableD = true;
                 } else if (mode === 'PID') {
-                    params.Kp = 4.0;
-                    params.Ki = 1.0;
-                    params.Kd = 4.0;
+                    params.Kp = 8.0;
+                    params.Ki = 1.5;
+                    params.Kd = 5.0;
                     params.enableP = true;
                     params.enableI = true;
                     params.enableD = true;
