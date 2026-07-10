@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PID制御シミュレーター（改善版）</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --panel-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --primary: #2563eb;
+            --target: #dc2626;
+            --success: #059669;
+            --warning: #f59e0b;
+            --wind: #0284c7;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Meiryo, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        header {
+            max-width: 1600px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #475569;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .canvas-container,
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            padding: 18px;
+        }
+
+        .canvas-container {
+            min-height: 480px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+            border-radius: 12px;
+            background: #f1f5f9;
+        }
+
+        .drag-hint,
+        .wind-indicator,
+        .mode-description {
+            position: absolute;
+            right: 18px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #475569;
+            font-size: 0.9rem;
+            pointer-events: none;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
+
+        .drag-hint { top: 18px; }
+        .wind-indicator { top: 60px; display: none; }
+        .mode-description { bottom: 18px; left: 18px; right: auto; max-width: 260px; pointer-events: auto; }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            margin-bottom: 14px;
+            font-size: 1.15rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .btn-group-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .btn-group,
+        .slider-group,
+        .status-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .btn-group {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        button {
+            border: 1px solid transparent;
+            border-radius: 12px;
+            background: #e2e8f0;
+            color: var(--text-color);
+            padding: 14px 12px;
+            font-size: 0.97rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+            text-align: left;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: #dbeafe;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        button.active-mode,
+        button.active-mode-onoff {
+            background: var(--primary);
+            color: #fff;
+            border-color: rgba(59, 130, 246, 0.7);
+        }
+
+        .btn-danger { background: #fee2e2; color: #991b1b; }
+        .btn-action { background: #d1fae5; color: #065f46; }
+        .btn-wind { background: #e0f2fe; color: #0c4a6e; border: 1px solid transparent; }
+        .btn-wind.active { background: #bae6fd; border-color: #38bdf8; }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .slider-header span.val {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .param-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .param-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .disabled-text {
+            color: #94a3b8 !important;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            height: 22px;
+            accent-color: var(--primary);
+        }
+
+        .status-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .status-item {
+            background: #f1f5f9;
+            padding: 14px;
+            border-radius: 12px;
+            min-height: 72px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .status-label {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .status-value {
+            font-size: 1.18rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-weight: 700;
+        }
+
+        .status-value.off { color: #94a3b8; font-size: 1rem; }
+        .c-p { color: var(--primary); }
+        .c-i { color: var(--warning); }
+        .c-d { color: var(--success); }
+        .c-err { color: var(--target); }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+            .canvas-container { min-height: 340px; }
+            button { min-height: 58px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>PID制御シミュレーター（改善版）</h1>
+            <p class="subtitle">ON/OFF と P/PD/PID の違いをより見やすくしました。ドラッグで目標を移動し、風や突風で制御の特徴を比べてください。</p>
+        </div>
+        <div class="subtitle">Mass: 1.0 / Damping: 0.05</div>
+    </header>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="simCanvas"></canvas>
+            <div class="drag-hint">赤い線をドラッグして目標を変えられます</div>
+            <div class="wind-indicator" id="windIndicator">💨 持続的な風</div>
+            <div class="mode-description" id="modeDescription">モードを選択してください。</div>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <h2>1. 制御モード</h2>
+                <div class="btn-group-grid">
+                    <button id="btnON_OFF" onclick="setMode('ON_OFF')"><span>ON/OFF</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">強さは固定・正負切り替え</span></button>
+                    <button id="btnP" onclick="setMode('P')"><span>P のみ</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">誤差に比例する連続出力</span></button>
+                    <button id="btnPD" onclick="setMode('PD')"><span>PD</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">速度も使ってブレーキ制御</span></button>
+                    <button id="btnPID" onclick="setMode('PID')"><span>PID</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">定常偏差と外乱に強い</span></button>
+                </div>
+                <div class="btn-group">
+                    <button id="btnWind" class="btn-wind" onclick="toggleWind()"><span>💨 風</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">常時の外乱を追加</span></button>
+                    <button class="btn-action" onclick="applyDisturbance()"><span>🌪 突風</span><span style="font-size:0.78rem;font-weight:400;margin-top:6px;">一時的にずらす</span></button>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-danger" onclick="resetSim()">↺ リセット</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>2. PID パラメータ</h2>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="param-toggle c-p" id="labelKp">
+                            <input type="checkbox" id="checkP" onchange="toggleParam('P')" checked>
+                            Kp (比例)
+                        </label>
+                        <span class="val c-p" id="valKp">0.0</span>
+                    </div>
+                    <input type="range" id="slideKp" min="0" max="20" step="0.1" value="0">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="param-toggle c-d" id="labelKd">
+                            <input type="checkbox" id="checkD" onchange="toggleParam('D')" checked>
+                            Kd (微分)
+                        </label>
+                        <span class="val c-d" id="valKd">0.0</span>
+                    </div>
+                    <input type="range" id="slideKd" min="0" max="12" step="0.1" value="0">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label class="param-toggle c-i" id="labelKi">
+                            <input type="checkbox" id="checkI" onchange="toggleParam('I')" checked>
+                            Ki (積分)
+                        </label>
+                        <span class="val c-i" id="valKi">0.0</span>
+                    </div>
+                    <input type="range" id="slideKi" min="0" max="6" step="0.1" value="0">
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>3. 内部状態</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Mode</span>
+                        <span class="status-value" id="dispMode">---</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Error</span>
+                        <span class="status-value c-err" id="dispError">0.0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Velocity</span>
+                        <span class="status-value" id="dispVel">0.0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">P</span>
+                        <span class="status-value c-p" id="dispP">0.0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">I</span>
+                        <span class="status-value c-i" id="dispI">0.0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">D</span>
+                        <span class="status-value c-d" id="dispD">0.0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Total Force</span>
+                        <span class="status-value" id="dispForce">0.0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const PHYSICS = { mass: 1.0, damping: 0.06 };
+        const ON_OFF_FORCE = 140;
+        const ON_OFF_SPEED = 2.2;
+        const ON_OFF_ACCEL = 14;
+        const WIND_FORCE = -70;
+        const MAX_INTEGRAL = 6;
+
+        const state = {
+            position: 120,
+            target: 680,
+            velocity: 0,
+            error: 0,
+            normalizedError: 0,
+            lastNormalizedError: 0,
+            integral: 0,
+            P: 0,
+            I: 0,
+            D: 0,
+            force: 0
+        };
+
+        const params = {
+            Kp: 0,
+            Ki: 0,
+            Kd: 0,
+            enableP: true,
+            enableI: true,
+            enableD: true
+        };
+
+        let controlMode = 'PID';
+        let isWindActive = false;
+        let isDraggingTarget = false;
+        const history = [];
+
+        const slideKp = document.getElementById('slideKp');
+        const slideKi = document.getElementById('slideKi');
+        const slideKd = document.getElementById('slideKd');
+        const checkP = document.getElementById('checkP');
+        const checkI = document.getElementById('checkI');
+        const checkD = document.getElementById('checkD');
+        const valKp = document.getElementById('valKp');
+        const valKi = document.getElementById('valKi');
+        const valKd = document.getElementById('valKd');
+        const dispError = document.getElementById('dispError');
+        const dispVel = document.getElementById('dispVel');
+        const dispP = document.getElementById('dispP');
+        const dispI = document.getElementById('dispI');
+        const dispD = document.getElementById('dispD');
+        const dispForce = document.getElementById('dispForce');
+        const dispMode = document.getElementById('dispMode');
+        const btnWind = document.getElementById('btnWind');
+        const windIndicator = document.getElementById('windIndicator');
+        const modeDescription = document.getElementById('modeDescription');
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.style.width = `${Math.floor(rect.width)}px`;
+            canvas.style.height = `${Math.floor(rect.height)}px`;
+            canvas.width = Math.floor(rect.width * dpr);
+            canvas.height = Math.floor(rect.height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        const dt = 1 / 60;
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function updatePhysics() {
+            state.error = state.target - state.position;
+            state.normalizedError = canvas.width ? state.error / canvas.width : 0;
+
+            if (controlMode === 'ON_OFF') {
+                state.P = 0; state.I = 0; state.D = 0;
+                state.force = state.error > 0 ? ON_OFF_FORCE : state.error < 0 ? -ON_OFF_FORCE : 0;
+                const disturbance = isWindActive ? WIND_FORCE : 0;
+                const totalForce = state.force + disturbance - PHYSICS.damping * state.velocity;
+                const acceleration = totalForce / PHYSICS.mass;
+                state.velocity += acceleration * dt;
+                state.position += state.velocity * dt;
+                state.lastNormalizedError = state.normalizedError;
+            } else {
+                state.P = params.enableP ? params.Kp * state.normalizedError * ON_OFF_FORCE : 0;
+
+                if (params.enableI) {
+                    state.integral += state.normalizedError * dt;
+                    state.integral = clamp(state.integral, -MAX_INTEGRAL, MAX_INTEGRAL);
+                    state.I = params.Ki * state.integral * ON_OFF_FORCE;
+                } else {
+                    state.integral = 0;
+                    state.I = 0;
+                }
+
+                state.D = 0;
+                if (params.enableD) {
+                    const derivative = (state.normalizedError - state.lastNormalizedError) / dt;
+                    state.D = params.Kd * derivative * ON_OFF_FORCE;
+                }
+
+                state.force = state.P + state.I + state.D;
+                const disturbance = isWindActive ? WIND_FORCE : 0;
+                const totalForce = state.force + disturbance - PHYSICS.damping * state.velocity;
+                const acceleration = totalForce / PHYSICS.mass;
+                state.velocity += acceleration * dt;
+                state.position += state.velocity * dt;
+                state.lastNormalizedError = state.normalizedError;
+            }
+
+            if (params.enableI) {
+                state.integral += state.normalizedError * dt;
+                state.integral = clamp(state.integral, -MAX_INTEGRAL, MAX_INTEGRAL);
+                state.I = params.Ki * state.integral * ON_OFF_FORCE;
+            } else {
+                state.integral = 0;
+                state.I = 0;
+            }
+
+            state.D = 0;
+            if (params.enableD) {
+                const derivative = (state.normalizedError - state.lastNormalizedError) / dt;
+                state.D = params.Kd * derivative * ON_OFF_FORCE;
+            }
+
+            state.force = state.P + state.I + state.D;
+            const disturbance = isWindActive ? WIND_FORCE : 0;
+            const totalForce = state.force + disturbance - PHYSICS.damping * state.velocity;
+            const acceleration = totalForce / PHYSICS.mass;
+            state.velocity += acceleration * dt;
+            state.position += state.velocity * dt;
+            state.lastNormalizedError = state.normalizedError;
+
+            history.push({ pos: state.position, target: state.target });
+            if (history.length > Math.max(canvas.width, 1200)) history.shift();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const animHeight = canvas.height * 0.45;
+            const graphHeight = canvas.height * 0.45;
+            const graphTop = canvas.height * 0.55;
+            const railY = animHeight / 2;
+
+            if (isWindActive) {
+                ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
+                ctx.fillRect(0, 0, canvas.width, animHeight);
+                ctx.strokeStyle = 'rgba(14, 165, 233, 0.28)';
+                ctx.lineWidth = 2;
+                const time = Date.now() / 220;
+                for (let i = 0; i < 5; i++) {
+                    const x = ((time * -50) + i * 220) % (canvas.width + 100);
+                    const y = railY - 32 + i * 16;
+                    ctx.beginPath();
+                    ctx.moveTo(x > 0 ? x : canvas.width + x, y);
+                    ctx.lineTo((x > 0 ? x : canvas.width + x) + 44, y);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(0, railY);
+            ctx.lineTo(canvas.width, railY);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(state.target, railY - 40);
+            ctx.lineTo(state.target, railY + 40);
+            ctx.strokeStyle = isDraggingTarget ? '#b91c1c' : '#ef4444';
+            ctx.lineWidth = isDraggingTarget ? 4 : 2;
+            ctx.setLineDash([6, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.moveTo(state.target, railY - 40);
+            ctx.lineTo(state.target + 16, railY - 30);
+            ctx.lineTo(state.target, railY - 20);
+            ctx.fill();
+
+            if (Math.abs(state.velocity) > 0.75) {
+                const arrowLength = state.velocity * 0.18;
+                const arrowY = railY - 30;
+                ctx.beginPath();
+                ctx.moveTo(state.position, arrowY);
+                ctx.lineTo(state.position + arrowLength, arrowY);
+                ctx.strokeStyle = '#8b5cf6';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.beginPath();
+                const dir = state.velocity > 0 ? 1 : -1;
+                ctx.moveTo(state.position + arrowLength, arrowY);
+                ctx.lineTo(state.position + arrowLength - 10 * dir, arrowY - 5);
+                ctx.lineTo(state.position + arrowLength - 10 * dir, arrowY + 5);
+                ctx.fillStyle = '#8b5cf6';
+                ctx.fill();
+            }
+
+            const radius = Math.min(24, canvas.width / 28);
+            ctx.beginPath();
+            ctx.arc(state.position, railY, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#2563eb';
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#1d4ed8';
+            ctx.stroke();
+
+            if (Math.abs(state.force) > 40) {
+                ctx.beginPath();
+                ctx.moveTo(state.position, railY + radius + 10);
+                ctx.lineTo(state.position + state.force * 0.05, railY + radius + 10);
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height * 0.5);
+            ctx.lineTo(canvas.width, canvas.height * 0.5);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#475569';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('時間 →', 16, graphTop + 18);
+            ctx.fillText('位置の履歴', 16, graphTop + 34);
+
+            if (history.length > 1) {
+                let graphMin = Infinity;
+                let graphMax = -Infinity;
+                for (const entry of history) {
+                    graphMin = Math.min(graphMin, entry.pos, entry.target);
+                    graphMax = Math.max(graphMax, entry.pos, entry.target);
+                }
+                graphMin = Math.min(graphMin, 0) - canvas.width * 0.12;
+                graphMax = Math.max(graphMax, canvas.width) + canvas.width * 0.12;
+                const graphRange = Math.max(graphMax - graphMin, 1);
+
+                const getGraphY = val => {
+                    const clamped = Math.max(graphMin, Math.min(graphMax, val));
+                    return graphTop + graphHeight - ((clamped - graphMin) / graphRange) * graphHeight;
+                };
+
+                const drawLength = Math.min(history.length, canvas.width);
+                const startX = canvas.width - drawLength;
+                const offset = history.length - drawLength;
+
+                ctx.beginPath();
+                ctx.moveTo(startX, getGraphY(history[offset].target));
+                for (let i = 1; i < drawLength; i++) {
+                    ctx.lineTo(startX + i, getGraphY(history[offset + i].target));
+                }
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(startX, getGraphY(history[offset].pos));
+                for (let i = 1; i < drawLength; i++) {
+                    ctx.lineTo(startX + i, getGraphY(history[offset + i].pos));
+                }
+                ctx.strokeStyle = '#2563eb';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        function updateUI() {
+            valKp.textContent = params.Kp.toFixed(1);
+            valKi.textContent = params.Ki.toFixed(1);
+            valKd.textContent = params.Kd.toFixed(1);
+            dispError.textContent = state.error.toFixed(1);
+            dispVel.textContent = state.velocity.toFixed(1);
+            dispForce.textContent = state.force.toFixed(1);
+            dispMode.textContent = controlMode;
+
+            const isOnOff = controlMode === 'ON_OFF';
+            setStatusValue(dispP, params.enableP, state.P, isOnOff);
+            setStatusValue(dispI, params.enableI, state.I, isOnOff);
+            setStatusValue(dispD, params.enableD, state.D, isOnOff);
+
+            checkP.disabled = isOnOff;
+            checkI.disabled = isOnOff;
+            checkD.disabled = isOnOff;
+            slideKp.disabled = isOnOff || !params.enableP;
+            slideKi.disabled = isOnOff || !params.enableI;
+            slideKd.disabled = isOnOff || !params.enableD;
+
+            const toggleDisabledStyle = (el, disable) => disable ? el.classList.add('disabled-text') : el.classList.remove('disabled-text');
+            toggleDisabledStyle(valKp, slideKp.disabled);
+            toggleDisabledStyle(valKi, slideKi.disabled);
+            toggleDisabledStyle(valKd, slideKd.disabled);
+            toggleDisabledStyle(labelKp, slideKp.disabled);
+            toggleDisabledStyle(labelKi, slideKi.disabled);
+            toggleDisabledStyle(labelKd, slideKd.disabled);
+
+            const descriptions = {
+                ON_OFF: 'ON/OFF: 目標の左右で速度を切り替えます。位置はほぼ直線的に往復し、三角波に近い動きになります。',
+                P: 'P: 誤差に比例した連続的な力です。滑らかに振動しながら目標に収束します。',
+                PD: 'PD: 速度の変化も抑えて、より速くスムーズに近づきます。',
+                PID: 'PID: 積分で定常偏差を減らし、外乱にも強い制御です。'
+            };
+            modeDescription.textContent = descriptions[controlMode] || 'モードを選択してください。';
+        }
+
+        function setStatusValue(element, isEnabled, value, isOnOff) {
+            if (isOnOff) {
+                element.textContent = '-';
+                element.classList.remove('off');
+            } else if (!isEnabled) {
+                element.textContent = 'OFF';
+                element.classList.add('off');
+            } else {
+                element.textContent = value.toFixed(1);
+                element.classList.remove('off');
+            }
+        }
+
+        function readSliders() {
+            params.Kp = parseFloat(slideKp.value);
+            params.Ki = parseFloat(slideKi.value);
+            params.Kd = parseFloat(slideKd.value);
+        }
+
+        slideKp.addEventListener('input', readSliders);
+        slideKi.addEventListener('input', readSliders);
+        slideKd.addEventListener('input', readSliders);
+
+        window.toggleParam = function(paramType) {
+            params['enable' + paramType] = document.getElementById('check' + paramType).checked;
+            if (paramType === 'I' && !params.enableI) {
+                state.integral = 0;
+                state.I = 0;
+            }
+            if (paramType === 'D') {
+                state.lastNormalizedError = state.normalizedError;
+                if (!params.enableD) state.D = 0;
+            }
+            updateUI();
+        };
+
+        function updateSlidersFromParams() {
+            slideKp.value = params.Kp;
+            slideKi.value = params.Ki;
+            slideKd.value = params.Kd;
+            checkP.checked = params.enableP;
+            checkI.checked = params.enableI;
+            checkD.checked = params.enableD;
+            updateUI();
+        }
+
+        function clearActiveButtons() {
+            document.getElementById('btnON_OFF').classList.remove('active-mode-onoff');
+            document.getElementById('btnP').classList.remove('active-mode');
+            document.getElementById('btnPD').classList.remove('active-mode');
+            document.getElementById('btnPID').classList.remove('active-mode');
+        }
+
+        window.setMode = function(mode) {
+            clearActiveButtons();
+            if (mode === 'ON_OFF') {
+                document.getElementById('btnON_OFF').classList.add('active-mode-onoff');
+                controlMode = 'ON_OFF';
+            } else {
+                document.getElementById('btn' + mode).classList.add('active-mode');
+                controlMode = mode;
+                if (mode === 'P') {
+                    params.Kp = 6.0;
+                    params.enableP = true;
+                    params.enableI = false;
+                    params.enableD = false;
+                } else if (mode === 'PD') {
+                    params.Kp = 4.2;
+                    params.Kd = 4.8;
+                    params.enableP = true;
+                    params.enableI = false;
+                    params.enableD = true;
+                } else if (mode === 'PID') {
+                    params.Kp = 4.0;
+                    params.Ki = 1.0;
+                    params.Kd = 4.0;
+                    params.enableP = true;
+                    params.enableI = true;
+                    params.enableD = true;
+                }
+            }
+            state.integral = 0;
+            state.I = 0;
+            state.error = state.target - state.position;
+            state.normalizedError = canvas.width ? state.error / canvas.width : 0;
+            state.lastNormalizedError = state.normalizedError;
+            updateSlidersFromParams();
+        };
+
+        window.toggleWind = function() {
+            isWindActive = !isWindActive;
+            btnWind.classList.toggle('active', isWindActive);
+            windIndicator.style.display = isWindActive ? 'block' : 'none';
+        };
+
+        window.applyDisturbance = function() {
+            state.position -= Math.min(120, canvas.width * 0.18);
+            state.velocity -= 150;
+        };
+
+        window.resetSim = function() {
+            state.position = canvas.width * 0.2;
+            state.target = canvas.width * 0.8;
+            state.velocity = 0;
+            state.error = state.target - state.position;
+            state.normalizedError = canvas.width ? state.error / canvas.width : 0;
+            state.lastNormalizedError = state.normalizedError;
+            state.integral = 0;
+            state.P = 0;
+            state.I = 0;
+            state.D = 0;
+            state.force = 0;
+            history.length = 0;
+            isWindActive = false;
+            btnWind.classList.remove('active');
+            windIndicator.style.display = 'none';
+            updateSlidersFromParams();
+        };
+
+        function getCanvasPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches && e.touches[0];
+            const clientX = touch ? touch.clientX : e.clientX;
+            const clientY = touch ? touch.clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function startDrag(e) {
+            const pos = getCanvasPos(e);
+            if (pos.y <= canvas.height * 0.45 && Math.abs(pos.x - state.target) < 42) {
+                isDraggingTarget = true;
+                e.preventDefault();
+            }
+        }
+
+        function moveDrag(e) {
+            if (!isDraggingTarget) return;
+            const pos = getCanvasPos(e);
+            state.target = clamp(pos.x, 30, canvas.width - 30);
+            e.preventDefault();
+        }
+
+        function endDrag() {
+            isDraggingTarget = false;
+        }
+
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', moveDrag);
+        window.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('touchstart', startDrag, { passive: false });
+        window.addEventListener('touchmove', moveDrag, { passive: false });
+        window.addEventListener('touchend', endDrag);
+
+        function loop() {
+            updatePhysics();
+            draw();
+            updateUI();
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            setMode('ON_OFF');
+            resetSim();
+            loop();
+        });
+    </script>
+</body>
+</html>
