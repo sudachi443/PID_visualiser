@@ -27,7 +27,7 @@
             min-height: 100vh;
             -webkit-user-select: none;
             user-select: none;
-            touch-action: none;
+            touch-action: manipulation;
         }
 
         header {
@@ -76,7 +76,6 @@
             display: flex;
             flex-direction: column;
             width: 100%;
-            touch-action: none;
         }
 
         canvas {
@@ -86,7 +85,7 @@
             cursor: crosshair;
             border-radius: 8px;
             background: #f1f5f9;
-            touch-action: none;
+            touch-action: manipulation;
         }
 
         .drag-hint,
@@ -290,7 +289,7 @@
             }
 
             .canvas-container {
-                min-height: 340px;
+                min-height: 360px;
                 padding: 10px;
             }
 
@@ -545,14 +544,12 @@
 
         const PHYSICS = { mass: 1.0, damping: 0.06 };
         const ON_OFF_FORCE = 140;
-        const ON_OFF_SPEED = 2.2;
-        const ON_OFF_ACCEL = 14;
         const WIND_FORCE = -70;
         const MAX_INTEGRAL = 6;
 
         const state = {
-            position: 0, // 初期値はリセット時に計算される
-            target: 0,   // 初期値はリセット時に計算される
+            position: 0,
+            target: 0,
             velocity: 0,
             error: 0,
             normalizedError: 0,
@@ -577,6 +574,8 @@
         let isWindActive = false;
         let isDraggingTarget = false;
         const history = [];
+        let canvasLogicalWidth = 0;
+        let canvasLogicalHeight = 0;
 
         const slideKp = document.getElementById('slideKp');
         const slideKi = document.getElementById('slideKi');
@@ -601,10 +600,14 @@
         function resizeCanvas() {
             const rect = canvas.parentElement.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
-            canvas.style.width = `${Math.floor(rect.width)}px`;
-            canvas.style.height = `${Math.floor(rect.height)}px`;
-            canvas.width = Math.floor(rect.width * dpr);
-            canvas.height = Math.floor(rect.height * dpr);
+            
+            canvasLogicalWidth = Math.floor(rect.width);
+            canvasLogicalHeight = Math.floor(rect.height);
+            
+            canvas.style.width = `${canvasLogicalWidth}px`;
+            canvas.style.height = `${canvasLogicalHeight}px`;
+            canvas.width = canvasLogicalWidth * dpr;
+            canvas.height = canvasLogicalHeight * dpr;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
         window.addEventListener('resize', resizeCanvas);
@@ -617,7 +620,7 @@
 
         function updatePhysics() {
             state.error = state.target - state.position;
-            state.normalizedError = canvas.width ? state.error / canvas.width : 0;
+            state.normalizedError = canvasLogicalWidth ? state.error / canvasLogicalWidth : 0;
 
             if (controlMode === 'ON_OFF') {
                 state.P = 0; state.I = 0; state.D = 0;
@@ -655,59 +658,36 @@
                 state.lastNormalizedError = state.normalizedError;
             }
 
-            if (params.enableI) {
-                state.integral += state.normalizedError * dt;
-                state.integral = clamp(state.integral, -MAX_INTEGRAL, MAX_INTEGRAL);
-                state.I = params.Ki * state.integral * ON_OFF_FORCE;
-            } else {
-                state.integral = 0;
-                state.I = 0;
-            }
-
-            state.D = 0;
-            if (params.enableD) {
-                const derivative = (state.normalizedError - state.lastNormalizedError) / dt;
-                state.D = params.Kd * derivative * ON_OFF_FORCE;
-            }
-
-            state.force = state.P + state.I + state.D;
-            const disturbance = isWindActive ? WIND_FORCE : 0;
-            const totalForce = state.force + disturbance - PHYSICS.damping * state.velocity;
-            const acceleration = totalForce / PHYSICS.mass;
-            state.velocity += acceleration * dt;
-            state.position += state.velocity * dt;
-            state.lastNormalizedError = state.normalizedError;
-
             history.push({ pos: state.position, target: state.target });
-            if (history.length > Math.max(canvas.width, 1200)) history.shift();
+            if (history.length > Math.max(canvasLogicalWidth, 1200)) history.shift();
         }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const animHeight = canvas.height * 0.5;
-            const graphHeight = canvas.height * 0.45;
-            const graphTop = canvas.height * 0.55;
+            ctx.clearRect(0, 0, canvasLogicalWidth, canvasLogicalHeight);
+            const animHeight = canvasLogicalHeight * 0.5;
+            const graphHeight = canvasLogicalHeight * 0.45;
+            const graphTop = canvasLogicalHeight * 0.55;
             const railY = animHeight / 2;
 
             if (isWindActive) {
                 ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
-                ctx.fillRect(0, 0, canvas.width, animHeight);
+                ctx.fillRect(0, 0, canvasLogicalWidth, animHeight);
                 ctx.strokeStyle = 'rgba(14, 165, 233, 0.28)';
                 ctx.lineWidth = 2;
                 const time = Date.now() / 220;
                 for (let i = 0; i < 5; i++) {
-                    const x = ((time * -50) + i * 220) % (canvas.width + 100);
+                    const x = ((time * -50) + i * 220) % (canvasLogicalWidth + 100);
                     const y = railY - 32 + i * 16;
                     ctx.beginPath();
-                    ctx.moveTo(x > 0 ? x : canvas.width + x, y);
-                    ctx.lineTo((x > 0 ? x : canvas.width + x) + 44, y);
+                    ctx.moveTo(x > 0 ? x : canvasLogicalWidth + x, y);
+                    ctx.lineTo((x > 0 ? x : canvasLogicalWidth + x) + 44, y);
                     ctx.stroke();
                 }
             }
 
             ctx.beginPath();
             ctx.moveTo(0, railY);
-            ctx.lineTo(canvas.width, railY);
+            ctx.lineTo(canvasLogicalWidth, railY);
             ctx.strokeStyle = '#cbd5e1';
             ctx.lineWidth = 4;
             ctx.lineCap = 'round';
@@ -747,7 +727,7 @@
                 ctx.fill();
             }
 
-            const radius = Math.min(24, canvas.width / 28);
+            const radius = Math.min(24, canvasLogicalWidth / 28);
             ctx.beginPath();
             ctx.arc(state.position, railY, radius, 0, Math.PI * 2);
             ctx.fillStyle = '#2563eb';
@@ -766,8 +746,8 @@
             }
 
             ctx.beginPath();
-            ctx.moveTo(0, canvas.height * 0.5);
-            ctx.lineTo(canvas.width, canvas.height * 0.5);
+            ctx.moveTo(0, canvasLogicalHeight * 0.5);
+            ctx.lineTo(canvasLogicalWidth, canvasLogicalHeight * 0.5);
             ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 2;
             ctx.stroke();
@@ -784,8 +764,8 @@
                     graphMin = Math.min(graphMin, entry.pos, entry.target);
                     graphMax = Math.max(graphMax, entry.pos, entry.target);
                 }
-                graphMin = Math.min(graphMin, 0) - canvas.width * 0.12;
-                graphMax = Math.max(graphMax, canvas.width) + canvas.width * 0.12;
+                graphMin = Math.min(graphMin, 0) - canvasLogicalWidth * 0.12;
+                graphMax = Math.max(graphMax, canvasLogicalWidth) + canvasLogicalWidth * 0.12;
                 const graphRange = Math.max(graphMax - graphMin, 1);
 
                 const getGraphY = val => {
@@ -793,8 +773,8 @@
                     return graphTop + graphHeight - ((clamped - graphMin) / graphRange) * graphHeight;
                 };
 
-                const drawLength = Math.min(history.length, canvas.width);
-                const startX = canvas.width - drawLength;
+                const drawLength = Math.min(history.length, canvasLogicalWidth);
+                const startX = canvasLogicalWidth - drawLength;
                 const offset = history.length - drawLength;
 
                 ctx.beginPath();
@@ -939,7 +919,7 @@
             state.integral = 0;
             state.I = 0;
             state.error = state.target - state.position;
-            state.normalizedError = canvas.width ? state.error / canvas.width : 0;
+            state.normalizedError = canvasLogicalWidth ? state.error / canvasLogicalWidth : 0;
             state.lastNormalizedError = state.normalizedError;
             updateSlidersFromParams();
         };
@@ -951,16 +931,16 @@
         };
 
         window.applyDisturbance = function() {
-            state.position -= Math.min(120, canvas.width * 0.18);
+            state.position -= Math.min(120, canvasLogicalWidth * 0.18);
             state.velocity -= 150;
         };
 
         window.resetSim = function() {
-            state.position = canvas.width * 0.2;
-            state.target = canvas.width * 0.8;
+            state.position = canvasLogicalWidth * 0.2;
+            state.target = canvasLogicalWidth * 0.8;
             state.velocity = 0;
             state.error = state.target - state.position;
-            state.normalizedError = canvas.width ? state.error / canvas.width : 0;
+            state.normalizedError = canvasLogicalWidth ? state.error / canvasLogicalWidth : 0;
             state.lastNormalizedError = state.normalizedError;
             state.integral = 0;
             state.P = 0;
@@ -980,16 +960,15 @@
             const clientX = touch ? touch.clientX : e.clientX;
             const clientY = touch ? touch.clientY : e.clientY;
             return {
-                x: (clientX - rect.left) * (canvas.width / rect.width),
-                y: (clientY - rect.top) * (canvas.height / rect.height)
+                x: (clientX - rect.left) * (canvasLogicalWidth / rect.width),
+                y: (clientY - rect.top) * (canvasLogicalHeight / rect.height)
             };
         }
 
         function startDrag(e) {
             const pos = getCanvasPos(e);
-            // タッチとマウスで判定エリアを変更（タッチはより大きい判定エリア）
             const hitRadius = e.touches ? 60 : 42;
-            if (pos.y <= canvas.height * 0.5 && Math.abs(pos.x - state.target) < hitRadius) {
+            if (pos.y <= canvasLogicalHeight * 0.5 && Math.abs(pos.x - state.target) < hitRadius) {
                 isDraggingTarget = true;
                 e.preventDefault();
             }
@@ -998,7 +977,7 @@
         function moveDrag(e) {
             if (!isDraggingTarget) return;
             const pos = getCanvasPos(e);
-            state.target = clamp(pos.x, 30, canvas.width - 30);
+            state.target = clamp(pos.x, 30, canvasLogicalWidth - 30);
             e.preventDefault();
         }
 
@@ -1006,17 +985,14 @@
             isDraggingTarget = false;
         }
 
-        // マウスイベント
         canvas.addEventListener('mousedown', startDrag);
         document.addEventListener('mousemove', moveDrag);
         document.addEventListener('mouseup', endDrag);
 
-        // タッチイベント（passive: false で preventDefault を有効化）
         canvas.addEventListener('touchstart', startDrag, { passive: false });
         document.addEventListener('touchmove', moveDrag, { passive: false });
         document.addEventListener('touchend', endDrag, { passive: false });
 
-        // アニメーションループ
         function animate() {
             updatePhysics();
             updateUI();
