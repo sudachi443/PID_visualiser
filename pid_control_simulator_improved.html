@@ -69,7 +69,7 @@
         }
 
         .canvas-container {
-            min-height: 280px;
+            min-height: 360px;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -287,7 +287,7 @@
             }
 
             .canvas-container {
-                min-height: 240px;
+                min-height: 340px;
                 padding: 10px;
             }
 
@@ -363,7 +363,7 @@
             }
 
             .canvas-container {
-                min-height: 200px;
+                min-height: 320px;
                 padding: 8px;
             }
 
@@ -548,8 +548,8 @@
         const MAX_INTEGRAL = 6;
 
         const state = {
-            position: 120,
-            target: 680,
+            position: 0, // 初期値はリセット時に計算される
+            target: 0,   // 初期値はリセット時に計算される
             velocity: 0,
             error: 0,
             normalizedError: 0,
@@ -681,7 +681,7 @@
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const animHeight = canvas.height * 0.45;
+            const animHeight = canvas.height * 0.5;
             const graphHeight = canvas.height * 0.45;
             const graphTop = canvas.height * 0.55;
             const railY = animHeight / 2;
@@ -984,7 +984,7 @@
 
         function startDrag(e) {
             const pos = getCanvasPos(e);
-            if (pos.y <= canvas.height * 0.45 && Math.abs(pos.x - state.target) < 42) {
+            if (pos.y <= canvas.height * 0.5 && Math.abs(pos.x - state.target) < 42) {
                 isDraggingTarget = true;
                 e.preventDefault();
             }
@@ -1002,25 +1002,27 @@
         }
 
         canvas.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', moveDrag);
-        window.addEventListener('mouseup', endDrag);
-        canvas.addEventListener('touchstart', startDrag, { passive: false });
-        window.addEventListener('touchmove', moveDrag, { passive: false });
-        window.addEventListener('touchend', endDrag);
+        canvas.addEventListener('mousemove', moveDrag);
+        canvas.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('touchstart', startDrag);
+        canvas.addEventListener('touchmove', moveDrag);
+        canvas.addEventListener('touchend', endDrag);
 
-        function loop() {
+        function animate() {
             updatePhysics();
             draw();
             updateUI();
-            requestAnimationFrame(loop);
+            requestAnimationFrame(animate);
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        // 初期化処理
+        function init() {
             resizeCanvas();
-            setMode('ON_OFF');
             resetSim();
-            loop();
-        });
+            animate();
+        }
+
+        init();
     </script>
 </body>
 </html>
